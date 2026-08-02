@@ -1,0 +1,15 @@
+name: Infrastructure Validation
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate-kubernetes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate Kubernetes YAML
+        run: kubectl kustomize kubernetes/base > /tmp/reno-rendered.yaml
