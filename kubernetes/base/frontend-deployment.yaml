@@ -6,21 +6,27 @@ metadata:
 spec:
   replicas: 2
   selector:
-    matchLabels:
-      app: reno-frontend
+    matchLabels: {app: reno-frontend}
   template:
     metadata:
-      labels:
-        app: reno-frontend
+      labels: {app: reno-frontend}
     spec:
       containers:
         - name: frontend
           image: ghcr.io/anandzambad/reno-frontend:latest
-          ports:
-            - containerPort: 3000
-          env:
-            - name: NEXT_PUBLIC_API_URL
-              value: /api
+          imagePullPolicy: IfNotPresent
+          ports: [{containerPort: 3000}]
+          resources:
+            requests: {cpu: 100m, memory: 128Mi}
+            limits: {cpu: 500m, memory: 512Mi}
+          readinessProbe:
+            httpGet: {path: /, port: 3000}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /, port: 3000}
+            initialDelaySeconds: 20
+            periodSeconds: 20
 ---
 apiVersion: v1
 kind: Service
@@ -28,8 +34,5 @@ metadata:
   name: reno-frontend
   namespace: reno
 spec:
-  selector:
-    app: reno-frontend
-  ports:
-    - port: 3000
-      targetPort: 3000
+  selector: {app: reno-frontend}
+  ports: [{port: 3000, targetPort: 3000}]
