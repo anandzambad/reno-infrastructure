@@ -6,44 +6,34 @@ metadata:
 spec:
   replicas: 2
   selector:
-    matchLabels:
-      app: reno-backend
+    matchLabels: {app: reno-backend}
   template:
     metadata:
-      labels:
-        app: reno-backend
+      labels: {app: reno-backend}
     spec:
       containers:
         - name: backend
           image: ghcr.io/anandzambad/reno-backend:latest
-          ports:
-            - containerPort: 8080
+          imagePullPolicy: IfNotPresent
+          ports: [{containerPort: 8080}]
           env:
             - name: DB_URL
-              valueFrom:
-                secretKeyRef:
-                  name: reno-db
-                  key: url
+              valueFrom: {secretKeyRef: {name: reno-db, key: url}}
             - name: DB_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: reno-db
-                  key: username
+              valueFrom: {secretKeyRef: {name: reno-db, key: username}}
             - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: reno-db
-                  key: password
+              valueFrom: {secretKeyRef: {name: reno-db, key: password}}
+            - name: CORS_ALLOWED_ORIGINS
+              value: "https://reno.example.com"
+          resources:
+            requests: {cpu: 100m, memory: 256Mi}
+            limits: {cpu: 500m, memory: 768Mi}
           readinessProbe:
-            httpGet:
-              path: /api/health
-              port: 8080
+            httpGet: {path: /actuator/health/readiness, port: 8080}
             initialDelaySeconds: 15
             periodSeconds: 10
           livenessProbe:
-            httpGet:
-              path: /api/health
-              port: 8080
+            httpGet: {path: /actuator/health/liveness, port: 8080}
             initialDelaySeconds: 30
             periodSeconds: 20
 ---
@@ -53,8 +43,5 @@ metadata:
   name: reno-backend
   namespace: reno
 spec:
-  selector:
-    app: reno-backend
-  ports:
-    - port: 8080
-      targetPort: 8080
+  selector: {app: reno-backend}
+  ports: [{port: 8080, targetPort: 8080}]
