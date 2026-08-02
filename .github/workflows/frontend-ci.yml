@@ -1,0 +1,24 @@
+name: Reno Frontend CI
+on:
+  push:
+    paths: ["../reno-frontend/**"]
+  pull_request:
+    paths: ["../reno-frontend/**"]
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ../reno-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ../reno-frontend/package-lock.json
+      - run: npm install
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run build
