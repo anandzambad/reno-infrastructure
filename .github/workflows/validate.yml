@@ -11,5 +11,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate Kubernetes YAML
-        run: kubectl kustomize kubernetes/base > /tmp/reno-rendered.yaml
+      - name: Validate Kubernetes overlays
+        run: |
+          for env in dev staging beta prod; do
+            echo "Rendering ${env}"
+            kubectl kustomize "kubernetes/overlays/${env}" > "/tmp/reno-${env}.yaml"
+          done
