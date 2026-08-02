@@ -1,0 +1,41 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: reno
+      MYSQL_USER: reno
+      MYSQL_PASSWORD: reno
+      MYSQL_ROOT_PASSWORD: local-root-password
+    ports:
+      - "3306:3306"
+    volumes:
+      - reno_mysql:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -plocal-root-password --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+  backend:
+    build:
+      context: ../reno-backend
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/reno
+      DB_USERNAME: reno
+      DB_PASSWORD: reno
+      CORS_ALLOWED_ORIGINS: http://localhost:3000
+    ports:
+      - "8080:8080"
+    depends_on:
+      mysql:
+        condition: service_healthy
+  frontend:
+    build:
+      context: ../reno-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+volumes:
+  reno_mysql:
