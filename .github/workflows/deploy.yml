@@ -1,0 +1,45 @@
+name: Reno Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        required: true
+        type: choice
+        options: [dev, staging, beta, prod]
+      image_tag:
+        description: Immutable image tag (normally a Git SHA)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      ENVIRONMENT: ${{ inputs.environment }}
+      IMAGE_TAG: ${{ inputs.image_tag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-kubectl@v4
+        with:
+          version: latest
+      - name: Configure kubeconfig
+        env:
+          KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+        run: |
+          mkdir -p "$HOME/.kube"
+          printf '%s' "$KUBE_CONFIG" > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+      - name: Render and apply
+        run: |
+          cd kubernetes/overlays/${ENVIRONMENT}
+          sed -i "s/newTag: .*/newTag: ${IMAGE_TAG}/g" kustomization.yaml
+          kubectl kustomize . | kubectl apply -f -
+          kubectl -n "reno-${ENVIRONMENT}" rollout status deployment/${ENVIRONMENT}-reno-backend --timeout=180s
+          kubectl -n "reno-${ENVIRONMENT}" rollout status deployment/${ENVIRONMENT}-reno-frontend --timeout=180s
