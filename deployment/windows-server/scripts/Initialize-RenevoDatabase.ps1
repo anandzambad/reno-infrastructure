@@ -40,7 +40,7 @@ try {
         "FLUSH PRIVILEGES;"
     ) | Set-Content $sql -Encoding ASCII
 
-    & $MySqlExe --defaults-extra-file=$temp --batch --skip-column-names < $sql
+    Get-Content $sql | & $MySqlExe --defaults-extra-file=$temp --batch --skip-column-names
     if ($LASTEXITCODE -ne 0) { throw "MySQL bootstrap failed with exit code $LASTEXITCODE." }
     Write-Host "Database '$DbName' and application user '$DbUser' are ready. Existing MySQL service/configuration was not changed."
 }
