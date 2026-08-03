@@ -36,15 +36,11 @@ if (-not (Test-Path (Join-Path $frontendDest 'server.js'))) {
 $envPath = "$Root\config\reno.env"
 if (-not (Test-Path $envPath)) { throw "Missing config: $envPath" }
 
-# Read only non-comment KEY=VALUE entries and generate local launchers.
-$envLines = Get-Content $envPath | Where-Object { $_ -and (-not $_.Trim().StartsWith('#')) -and $_ -match '^\s*[A-Za-z_][A-Za-z0-9_]*=' }
-$envText = ($envLines -join "`r`n")
-
 $backendCmd = @"
 @echo off
 setlocal
 for /f "usebackq tokens=1,* delims==" %%A in ("$envPath") do (
-  if not "%%A"=="" if not "%%A:~0,1%%"=="#" set "%%A=%%B"
+  if not "%%A"=="" set "%%A=%%B"
 )
 cd /d "$backendDest"
 "$Root\runtime\jdk21\bin\java.exe" -jar "reno-backend.jar"
@@ -56,7 +52,7 @@ $frontendCmd = @"
 @echo off
 setlocal
 for /f "usebackq tokens=1,* delims==" %%A in ("$envPath") do (
-  if not "%%A"=="" if not "%%A:~0,1%%"=="#" set "%%A=%%B"
+  if not "%%A"=="" set "%%A=%%B"
 )
 set "HOSTNAME=0.0.0.0"
 set "PORT=%FRONTEND_PORT%"
