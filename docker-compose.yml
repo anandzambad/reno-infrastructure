@@ -11,21 +11,33 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
 
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
   backend:
     build: ../reno-backend
     environment:
       DB_URL: jdbc:mysql://mysql:3306/reno
       DB_USERNAME: reno
       DB_PASSWORD: reno
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - "8080:8080"
     depends_on:
       - mysql
+      - redis
 
   frontend:
     build: ../reno-frontend
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8080/api
+      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
     ports:
       - "3000:3000"
     depends_on:
@@ -33,3 +45,4 @@ services:
 
 volumes:
   mysql-data:
+  redis-data:
