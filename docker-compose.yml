@@ -34,10 +34,11 @@ services:
       - redis
 
   frontend:
-    build: ../reno-frontend
-    environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8080/api
-      NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
+    build:
+      context: ../reno-frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8080/api
+        NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
     ports:
       - "3000:3000"
     depends_on:
