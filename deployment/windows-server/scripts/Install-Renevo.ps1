@@ -5,6 +5,7 @@ param(
     [string]$DbUser = 'reno_app',
     [int]$FrontendPort = 8088,
     [int]$BackendPort = 8090,
+    [string]$AllowedOrigin = '',
     [switch]$ConfigureFirewall
 )
 
@@ -36,19 +37,19 @@ $dirs = @(
     "$Root\logs\backend",
     "$Root\logs\frontend",
     "$Root\backup",
-    "$Root\runtime\jdk17",
+    "$Root\runtime\jdk21",
     "$Root\runtime\node18",
     "$Root\runtime\nssm",
     "$Root\scripts"
 )
 foreach ($d in $dirs) { if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null } }
 
-# Never modify system JAVA_HOME/PATH. Renevo uses a private runtime.
-$javaExe = "$Root\runtime\jdk17\bin\java.exe"
+# Never modify system JAVA_HOME/PATH. Renevo uses a private Java 21 runtime because the backend is compiled for Java 21.
+$javaExe = "$Root\runtime\jdk21\bin\java.exe"
 $nodeExe = "$Root\runtime\node18\node.exe"
 $nssmExe = "$Root\runtime\nssm\nssm.exe"
 
-if (-not (Test-Path $javaExe)) { Write-Warning "Private Java runtime not found: $javaExe. Place Java 17+ there before starting the backend." }
+if (-not (Test-Path $javaExe)) { Write-Warning "Private Java 21 runtime not found: $javaExe. Place a compatible Java 21 runtime there before starting the backend." }
 if (-not (Test-Path $nodeExe)) { Write-Warning "Private Node runtime not found: $nodeExe. Place Node 18.18+ there before starting the frontend." }
 if (-not (Test-Path $nssmExe)) { Write-Warning "NSSM not found: $nssmExe. Place nssm.exe there before installing Windows services." }
 
@@ -59,6 +60,8 @@ if ($mysqlService) {
 } else {
     Write-Warning 'MySQL57 service was not found. Database setup will need a manually supplied mysql.exe path.'
 }
+
+if ([string]::IsNullOrWhiteSpace($AllowedOrigin)) { $AllowedOrigin = "http://127.0.0.1:$FrontendPort" }
 
 $envPath = "$Root\config\reno.env"
 if (-not (Test-Path $envPath)) {
@@ -73,7 +76,7 @@ if (-not (Test-Path $envPath)) {
         REDIS_PORT = 6379
         REDIS_TIMEOUT = '1000ms'
         OIDC_ISSUER_URI = 'http://127.0.0.1:8081/realms/reno'
-        RENO_ALLOWED_ORIGINS = "http://127.0.0.1:$FrontendPort"
+        RENO_ALLOWED_ORIGINS = $AllowedOrigin
         FRONTEND_PORT = $FrontendPort
     }
     Write-EnvFile -Path $envPath -Values $values
@@ -83,12 +86,12 @@ if (-not (Test-Path $envPath)) {
 }
 
 if ($ConfigureFirewall) {
+    # Only the public web entry point is opened. Backend 8090 remains private by default.
     & netsh.exe advfirewall firewall add rule name='Renevo Frontend 8088' dir=in action=allow protocol=TCP localport=$FrontendPort profile=Any | Out-Null
-    & netsh.exe advfirewall firewall add rule name='Renevo Backend 8090' dir=in action=allow protocol=TCP localport=$BackendPort profile=Any | Out-Null
-    Write-Host 'Only Renevo firewall rules were requested/created.'
+    Write-Host "Renevo frontend firewall rule created for TCP $FrontendPort. Backend TCP $BackendPort remains private."
 }
 
 Write-Host ''
 Write-Host 'Renevo host preparation completed.'
 Write-Host 'No existing Java, MySQL, Tomcat, PATH or JAVA_HOME settings were changed.'
-Write-Host "Next: populate $Root\runtime\jdk17, $Root\runtime\node18 and $Root\runtime\nssm, then run Deploy-Renevo.ps1 and Install-RenevoServices.ps1."
+Write-Host "Next: populate $Root\runtime\jdk21, $Root\runtime\node18 and $Root\runtime\nssm, then run Initialize-RenevoDatabase.ps1, Deploy-Renevo.ps1 and Install-RenevoServices.ps1."
